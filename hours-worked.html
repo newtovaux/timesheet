@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hours worked, Monday to Friday</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#e8edf3;
+  --card:#fdfdfe;
+  --ink:#131a2a;
+  --dim:#64748b;
+  --rule:#c9d3df;
+  --rule-soft:#dde4ec;
+  --work:#2e3ac0;
+  --work-soft:#dfe2fb;
+  --lunch:#c98f26;
+  --bad:#b3261e;
+  --field:#f2f5f9;
+  --shadow:0 1px 0 rgba(19,26,42,.06), 0 12px 32px -18px rgba(19,26,42,.35);
+  --sans:'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#0f131d;
+    --card:#171d2b;
+    --ink:#e7ecf4;
+    --dim:#8b99ac;
+    --rule:#2b3547;
+    --rule-soft:#222b3b;
+    --work:#8291ff;
+    --work-soft:#242e4d;
+    --lunch:#e0b155;
+    --bad:#ff9a91;
+    --field:#111726;
+    --shadow:0 12px 40px -20px #000;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.45;
+  padding:clamp(16px,4vw,56px) clamp(12px,4vw,40px);
+  display:flex;
+  justify-content:center;
+}
+.wrap{width:100%;max-width:1040px}
+
+/* ---------- masthead ---------- */
+.masthead{margin-bottom:clamp(18px,3vw,28px)}
+.eyebrow{
+  font-family:var(--mono);
+  font-size:.72rem;
+  font-weight:500;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--dim);
+  margin:0 0 .5rem;
+}
+h1{
+  font-size:clamp(1.9rem,5.4vw,3rem);
+  font-weight:800;
+  letter-spacing:-.03em;
+  line-height:1;
+  margin:0 0 .55rem;
+}
+.lede{margin:0;max-width:46ch;color:var(--dim);font-size:.95rem}
+.lede code{
+  font-family:var(--mono);
+  font-size:.85em;
+  background:var(--work-soft);
+  color:var(--work);
+  padding:.1em .35em;
+  border-radius:3px;
+}
+
+/* ---------- sheet ---------- */
+.sheet{
+  background:var(--card);
+  border:1px solid var(--rule);
+  border-radius:6px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.row{
+  display:grid;
+  grid-template-columns:4.75rem repeat(4,minmax(0,1fr)) 5.5rem minmax(150px,1.35fr);
+  gap:.55rem;
+  align-items:center;
+  padding:.6rem clamp(.8rem,2vw,1.15rem);
+}
+.row.head{
+  padding-top:.85rem;
+  padding-bottom:.55rem;
+  border-bottom:1px solid var(--rule);
+}
+.row.day{border-bottom:1px solid var(--rule-soft)}
+.row.day:last-of-type{border-bottom:0}
+
+.colname{
+  font-family:var(--mono);
+  font-size:.66rem;
+  font-weight:500;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+  color:var(--dim);
+}
+.colname.right{text-align:right}
+
+.dayname{
+  font-family:var(--mono);
+  font-size:.8rem;
+  font-weight:600;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.dayname span{display:none}
+
+.cell{position:relative}
+.cell label{
+  display:none;
+  font-family:var(--mono);
+  font-size:.6rem;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--dim);
+  margin-bottom:.2rem;
+}
+input{
+  width:100%;
+  font-family:var(--mono);
+  font-size:1rem;
+  font-weight:500;
+  font-variant-numeric:tabular-nums;
+  color:var(--ink);
+  background:var(--field);
+  border:1px solid transparent;
+  border-radius:4px;
+  padding:.5rem .55rem;
+  text-align:center;
+  letter-spacing:.02em;
+}
+input::placeholder{color:var(--dim);opacity:.55;font-weight:400}
+input:hover{border-color:var(--rule)}
+input:focus{
+  outline:2px solid var(--work);
+  outline-offset:1px;
+  border-color:transparent;
+  background:var(--card);
+}
+input[aria-invalid="true"]{
+  box-shadow:inset 0 -2px 0 var(--bad);
+  color:var(--bad);
+}
+
+.total{
+  text-align:right;
+  font-family:var(--mono);
+  font-variant-numeric:tabular-nums;
+}
+.total b{font-size:1.05rem;font-weight:600;letter-spacing:-.01em}
+.total i{
+  display:block;
+  font-style:normal;
+  font-size:.68rem;
+  color:var(--dim);
+  margin-top:-.1rem;
+}
+.total.empty b{color:var(--dim);opacity:.45;font-weight:400}
+
+/* ---------- the week as a timeline ---------- */
+.axis{position:relative;height:1.35rem}
+.axis .tick{
+  position:absolute;
+  top:0;
+  transform:translateX(-50%);
+  font-family:var(--mono);
+  font-size:.6rem;
+  color:var(--dim);
+  white-space:nowrap;
+}
+.bar{
+  position:relative;
+  height:26px;
+  border-radius:3px;
+  background:
+    linear-gradient(to right, var(--rule-soft) 0 1px, transparent 1px) repeat-x,
+    var(--field);
+  background-size:var(--grid,25%) 100%;
+}
+.seg{
+  position:absolute;
+  top:5px;
+  height:16px;
+  border-radius:2px;
+  transition:left .18s ease, width .18s ease;
+}
+.seg.work{background:var(--work)}
+.seg.lunch{
+  top:10px;
+  height:6px;
+  background:repeating-linear-gradient(135deg,var(--lunch) 0 2px,transparent 2px 5px);
+  border-top:1px solid var(--lunch);
+  border-bottom:1px solid var(--lunch);
+  border-radius:0;
+}
+.note{
+  grid-column:1 / -1;
+  font-size:.78rem;
+  color:var(--bad);
+  padding-top:.15rem;
+}
+
+/* ---------- footer ---------- */
+.foot{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:1.25rem;
+  padding:clamp(1rem,2.5vw,1.4rem) clamp(.8rem,2vw,1.15rem);
+  border-top:1px solid var(--rule);
+  background:var(--card);
+}
+.foot .caption{
+  font-family:var(--mono);
+  font-size:.66rem;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--dim);
+  margin:0 0 .1rem;
+}
+.grand{
+  font-family:var(--mono);
+  font-size:clamp(2.6rem,10vw,4.25rem);
+  font-weight:600;
+  letter-spacing:-.045em;
+  line-height:.9;
+  font-variant-numeric:tabular-nums;
+  display:block;
+}
+.grand small{
+  font-size:.28em;
+  font-weight:400;
+  letter-spacing:0;
+  color:var(--dim);
+  margin-left:.6em;
+}
+.tools{display:flex;gap:.4rem}
+button{
+  font-family:var(--sans);
+  font-size:.8rem;
+  font-weight:500;
+  color:var(--ink);
+  background:transparent;
+  border:1px solid var(--rule);
+  border-radius:4px;
+  padding:.45rem .7rem;
+  cursor:pointer;
+}
+button:hover{background:var(--field);border-color:var(--dim)}
+button:focus-visible{outline:2px solid var(--work);outline-offset:1px}
+
+.key{
+  display:flex;
+  gap:1.1rem;
+  flex-wrap:wrap;
+  margin-top:1rem;
+  font-family:var(--mono);
+  font-size:.66rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--dim);
+}
+.key i{display:inline-block;width:16px;height:8px;margin-right:.4rem;vertical-align:1px}
+.key i.w{background:var(--work)}
+.key i.l{background:repeating-linear-gradient(135deg,var(--lunch) 0 2px,transparent 2px 5px);border-top:1px solid var(--lunch);border-bottom:1px solid var(--lunch)}
+
+/* ---------- narrow ---------- */
+@media (max-width:760px){
+  .row.head{display:none}
+  .row{
+    grid-template-columns:1fr 1fr;
+    gap:.5rem .5rem;
+    padding:.9rem clamp(.75rem,3vw,1rem);
+  }
+  .dayname{grid-column:1;align-self:center}
+  .dayname span{display:inline}
+  .total{grid-column:2}
+  .cell{grid-column:span 1}
+  .cell label{display:block}
+  .axis{display:none}
+  .bar{grid-column:1 / -1;margin-top:.35rem}
+  .foot{flex-direction:column;align-items:flex-start}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .seg{transition:none}
+}
+@media print{
+  body{background:#fff;padding:0}
+  .sheet{box-shadow:none}
+  .tools{display:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Timesheet, Monday to Friday</p>
+    <h1>Hours worked</h1>
+    <p class="lede">Everything is 24-hour. Type it however you like, <code>9</code>, <code>930</code> or <code>09:30</code> all land on the same minute. Leave both lunch fields blank for a day without a break.</p>
+  </header>
+
+  <main class="sheet">
+    <div class="row head">
+      <div class="colname">Day</div>
+      <div class="colname">Start</div>
+      <div class="colname">Lunch out</div>
+      <div class="colname">Lunch back</div>
+      <div class="colname">Finish</div>
+      <div class="colname right">Worked</div>
+      <div class="axis" id="axis"></div>
+    </div>
+
+    <div id="rows"></div>
+
+    <div class="foot">
+      <div>
+        <p class="caption">Week total</p>
+        <span class="grand" id="grand">0:00<small id="grandDec">0.00 decimal</small></span>
+      </div>
+      <div class="tools">
+        <button type="button" id="copyDown">Copy Monday down</button>
+        <button type="button" id="clear">Clear week</button>
+      </div>
+    </div>
+  </main>
+
+  <div class="key">
+    <span><i class="w"></i>At work</span>
+    <span><i class="l"></i>Lunch</span>
+    <span id="axisNote"></span>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  const FIELDS = [
+    { key: 'start',      label: 'Start',       ph: '09:00' },
+    { key: 'lunchStart', label: 'Lunch out',   ph: '13:00' },
+    { key: 'lunchEnd',   label: 'Lunch back',  ph: '13:30' },
+    { key: 'end',        label: 'Finish',      ph: '17:30' }
+  ];
+
+  const DEFAULT_AXIS = { from: 480, to: 1080 }; // 08:00 to 18:00 until there's data
+  const rowsEl   = document.getElementById('rows');
+  const axisEl   = document.getElementById('axis');
+  const grandEl  = document.getElementById('grand');
+  const grandDec = document.getElementById('grandDec');
+  const axisNote = document.getElementById('axisNote');
+  const inputs   = [];   // flat list, in tab order
+  const rows     = [];   // { el, inputs:{}, totalEl, bar, note }
+
+  /* ---------- time helpers ---------- */
+
+  // Accepts 9, 930, 09:30, 9.30, 0930. Returns minutes past midnight, or null.
+  function parseTime(raw) {
+    const s = String(raw).trim().replace(/\s+/g, '');
+    if (!s) return null;
+    let h, m;
+    const sep = s.match(/^(\d{1,2})[:.h](\d{1,2})$/i);
+    if (sep) {
+      h = +sep[1]; m = +sep[2];
+    } else if (/^\d{1,4}$/.test(s)) {
+      if (s.length <= 2)      { h = +s;               m = 0; }
+      else if (s.length === 3){ h = +s.slice(0, 1);   m = +s.slice(1); }
+      else                    { h = +s.slice(0, 2);   m = +s.slice(2); }
+    } else {
+      return null;
+    }
+    if (m > 59) return null;
+    if (h === 24 && m === 0) return 1440;   // finishing at midnight
+    if (h > 23) return null;
+    return h * 60 + m;
+  }
+
+  const pad = n => String(n).padStart(2, '0');
+  const clock = mins => pad(Math.floor(mins / 60) % 24) + ':' + pad(mins % 60);
+  const hhmm = mins => Math.floor(mins / 60) + ':' + pad(mins % 60);
+  const dec  = mins => (mins / 60).toFixed(2);
+
+  /* ---------- build the sheet ---------- */
+
+  DAYS.forEach((day, d) => {
+    const el = document.createElement('div');
+    el.className = 'row day';
+
+    const name = document.createElement('div');
+    name.className = 'dayname';
+    name.innerHTML = day.slice(0, 3) + '<span>' + day.slice(3) + '</span>';
+    el.appendChild(name);
+
+    const fieldEls = {};
+    FIELDS.forEach(f => {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+
+      const id = 'f-' + d + '-' + f.key;
+      const lab = document.createElement('label');
+      lab.setAttribute('for', id);
+      lab.textContent = f.label;
+
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.id = id;
+      inp.placeholder = f.ph;
+      inp.autocomplete = 'off';
+      inp.inputMode = 'numeric';
+      inp.maxLength = 5;
+      inp.setAttribute('aria-label', day + ' ' + f.label.toLowerCase());
+
+      cell.appendChild(lab);
+      cell.appendChild(inp);
+      el.appendChild(cell);
+
+      fieldEls[f.key] = inp;
+      inputs.push(inp);
+    });
+
+    const total = document.createElement('div');
+    total.className = 'total empty';
+    total.innerHTML = '<b>&mdash;</b><i></i>';
+
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+
+    const note = document.createElement('div');
+    note.className = 'note';
+    note.hidden = true;
+
+    el.appendChild(total);
+    el.appendChild(bar);
+    el.appendChild(note);
+    rowsEl.appendChild(el);
+
+    rows.push({ el, inputs: fieldEls, totalEl: total, bar, note });
+  });
+
+  /* ---------- work out one day ---------- */
+
+  function readDay(row) {
+    const vals = {}, bad = [];
+    let filled = 0;
+
+    FIELDS.forEach(f => {
+      const inp = row.inputs[f.key];
+      const raw = inp.value.trim();
+      if (!raw) { vals[f.key] = null; return; }
+      filled++;
+      const mins = parseTime(raw);
+      if (mins === null) bad.push(f.key);
+      vals[f.key] = mins;
+    });
+
+    const out = { vals, bad, filled, minutes: null, error: '', segments: [] };
+
+    if (bad.length) { out.error = 'Use a time like 09:30.'; return out; }
+    if (filled === 0) return out;
+
+    const { start, lunchStart, lunchEnd, end } = vals;
+
+    if (start === null || end === null) {
+      out.error = 'Needs a start and a finish.';
+      return out;
+    }
+    if (end <= start) {
+      out.error = 'Finish has to come after start.';
+      return out;
+    }
+
+    let worked = end - start;
+    const hasLunch = lunchStart !== null || lunchEnd !== null;
+
+    if (hasLunch) {
+      if (lunchStart === null || lunchEnd === null) {
+        out.error = 'Fill in both lunch times, or neither.';
+        return out;
+      }
+      if (lunchEnd < lunchStart) {
+        out.error = 'Lunch back has to come after lunch out.';
+        return out;
+      }
+      if (lunchStart < start || lunchEnd > end) {
+        out.error = 'Lunch falls outside the working day.';
+        return out;
+      }
+      worked -= (lunchEnd - lunchStart);
+      out.segments = [
+        { type: 'work',  from: start,     to: lunchStart },
+        { type: 'lunch', from: lunchStart, to: lunchEnd },
+        { type: 'work',  from: lunchEnd,  to: end }
+      ];
+    } else {
+      out.segments = [{ type: 'work', from: start, to: end }];
+    }
+
+    out.minutes = worked;
+    return out;
+  }
+
+  /* ---------- render ---------- */
+
+  function render() {
+    const results = rows.map(readDay);
+
+    // Shared axis across the week, so the rows are comparable.
+    let lo = Infinity, hi = -Infinity;
+    results.forEach(r => {
+      if (r.minutes === null) return;
+      lo = Math.min(lo, r.vals.start);
+      hi = Math.max(hi, r.vals.end);
+    });
+    if (!isFinite(lo)) { lo = DEFAULT_AXIS.from; hi = DEFAULT_AXIS.to; }
+    lo = Math.floor(lo / 60) * 60;
+    hi = Math.ceil(hi / 60) * 60;
+    if (hi - lo < 240) hi = lo + 240;
+
+    const span = hi - lo;
+    const pct = m => ((m - lo) / span) * 100;
+    const hours = span / 60;
+    const step = hours > 13 ? 2 : 1;
+
+    // hour grid behind every bar, and the tick labels in the header
+    axisEl.innerHTML = '';
+    for (let m = lo; m <= hi; m += step * 60) {
+      const t = document.createElement('span');
+      t.className = 'tick';
+      t.style.left = pct(m) + '%';
+      if (m === lo) t.style.transform = 'none';
+      else if (m + step * 60 > hi) t.style.transform = 'translateX(-100%)';
+      t.textContent = clock(m);
+      axisEl.appendChild(t);
+    }
+    axisNote.textContent = 'Axis ' + clock(lo) + ' to ' + clock(hi);
+    const gridPct = (100 / (hours / step)) + '%';
+
+    let weekly = 0, counted = 0;
+
+    results.forEach((r, i) => {
+      const row = rows[i];
+
+      FIELDS.forEach(f => {
+        const inp = row.inputs[f.key];
+        if (r.bad.indexOf(f.key) > -1) inp.setAttribute('aria-invalid', 'true');
+        else inp.removeAttribute('aria-invalid');
+      });
+
+      if (r.error) {
+        row.note.textContent = r.error;
+        row.note.hidden = false;
+      } else {
+        row.note.hidden = true;
+      }
+
+      if (r.minutes === null) {
+        row.totalEl.className = 'total empty';
+        row.totalEl.innerHTML = '<b>&mdash;</b><i></i>';
+      } else {
+        weekly += r.minutes;
+        counted++;
+        row.totalEl.className = 'total';
+        row.totalEl.innerHTML = '<b>' + hhmm(r.minutes) + '</b><i>' + dec(r.minutes) + '</i>';
+      }
+
+      row.bar.style.setProperty('--grid', gridPct);
+      row.bar.innerHTML = '';
+      r.segments.forEach(s => {
+        if (s.to <= s.from) return;
+        const seg = document.createElement('div');
+        seg.className = 'seg ' + s.type;
+        seg.style.left = pct(s.from) + '%';
+        seg.style.width = (pct(s.to) - pct(s.from)) + '%';
+        seg.title = clock(s.from) + ' to ' + clock(s.to);
+        row.bar.appendChild(seg);
+      });
+    });
+
+    grandEl.firstChild.nodeValue = hhmm(weekly);
+    grandDec.textContent = dec(weekly) + ' decimal' +
+      (counted ? ', ' + counted + (counted === 1 ? ' day' : ' days') : '');
+  }
+
+  /* ---------- interaction ---------- */
+
+  inputs.forEach((inp, idx) => {
+    inp.addEventListener('input', render);
+
+    inp.addEventListener('blur', () => {
+      const mins = parseTime(inp.value);
+      if (mins !== null) inp.value = mins === 1440 ? '24:00' : clock(mins);
+      render();
+    });
+
+    inp.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      inp.blur();
+      const next = inputs[idx + 1];
+      if (next) next.focus();
+    });
+  });
+
+  document.getElementById('clear').addEventListener('click', () => {
+    inputs.forEach(i => { i.value = ''; });
+    render();
+    inputs[0].focus();
+  });
+
+  document.getElementById('copyDown').addEventListener('click', () => {
+    const monday = rows[0].inputs;
+    rows.slice(1).forEach(row => {
+      FIELDS.forEach(f => { row.inputs[f.key].value = monday[f.key].value; });
+    });
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
